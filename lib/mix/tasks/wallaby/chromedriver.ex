@@ -27,7 +27,6 @@ defmodule Mix.Tasks.Wallaby.Chromedriver do
       |> Enum.join(".")
 
     # TODO: figure out how to find google chrome programmaticaly
-    # TODO: add support for linux
     {google_chrome_version_string, 0} =
       case :os.type() do
         {:unix, :darwin} ->
@@ -36,7 +35,8 @@ defmodule Mix.Tasks.Wallaby.Chromedriver do
           ])
 
         {:unix, :linux} ->
-          System.cmd("/usr/bin/google-chrome")
+          # this assumes a ubuntu-ish install location for chrome
+          System.cmd("/usr/bin/google-chrome", ["--version"])
       end
 
     google_chrome_version =
