@@ -107,8 +107,6 @@ defmodule Wallaby.Chrome do
   @behaviour Wallaby.Driver
 
   @default_readiness_timeout 5_000
-  @chromedriver_version_regex ~r/^ChromeDriver (\d+)\.(\d+).(\d+)/
-  @chrome_version_regex ~r/^Google Chrome (\d+)\.(\d+).(\d+)/
 
   alias Wallaby.Chrome.Chromedriver
   alias Wallaby.WebdriverClient
@@ -155,13 +153,66 @@ defmodule Wallaby.Chrome do
   @doc false
   @spec validate() :: :ok | {:error, DependencyError.t()}
   def validate do
-    with {:ok, chromedriver_executable} <- find_chromedriver_executable(),
-         {:ok, chrome_executable} <- find_chrome_executable(),
-         {chromedriver_version, 0} <- System.cmd(chromedriver_executable, ["--version"]),
-         {chrome_version, 0} <- System.cmd(chrome_executable, ["--version"]),
+    with {:ok, chrome_version} <- get_chrome_version(),
+         {:ok, chromedriver_version} <- get_chromedriver_version(),
          :ok <- minimum_version_check(chromedriver_version) do
+      case Version.compare(chrome_version, chromedriver_version) do
+        :gt ->
+          exception =
+            DependencyError.exception("""
+            Looks like you're trying to run a mismatched version of chrome and chromedriver. You'll need to
+            download the version #{chrome_version} of chromedriver.
+            """)
 
-      chrome_and_chromedriver_version_match_check(chrome_version, chromedriver_version)
+          {:error, exception}
+
+        _ ->
+          :ok
+      end
+    end
+  end
+
+  @doc false
+  @spec get_chrome_version() :: {:ok, String.t()} | {:error, term}
+  def get_chrome_version do
+    case :os.type() do
+      {:win32, :nt} ->
+        {stdout, 0} =
+          System.cmd("reg", [
+            "query",
+            "HKLM\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Google Chrome"
+          ])
+
+        chrome_version = parse_version("Version", stdout)
+
+        {:ok, chrome_version}
+
+      _ ->
+        case find_chrome_executable() do
+          {:ok, chrome_executable} ->
+            {stdout, 0} = System.cmd(chrome_executable, ["--version"])
+            chrome_version = parse_version("Google Chrome", stdout)
+
+            {:ok, chrome_version}
+
+          error ->
+            error
+        end
+    end
+  end
+
+  @doc false
+  @spec get_chromedriver_version() :: {:ok, String.t()} | {:error, term}
+  def get_chromedriver_version do
+    case find_chromedriver_executable() do
+      {:ok, chromedriver_executable} ->
+        {stdout, 0} = System.cmd(chromedriver_executable, ["--version"])
+        chromedriver_version = parse_version("ChromeDriver", stdout)
+
+        {:ok, chromedriver_version}
+
+      error ->
+        error
     end
   end
 
@@ -169,12 +220,15 @@ defmodule Wallaby.Chrome do
   @spec find_chrome_executable :: {:ok, String.t()} | {:error, DependencyError.t()}
   def find_chrome_executable do
     default_chrome_path =
-      #@TODO windows path
       case :os.type() do
         {:unix, :darwin} ->
           "/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"
+
         {:unix, :linux} ->
           "google-chrome"
+
+        {:win32, :nt} ->
+          "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
       end
 
     chrome_path =
@@ -227,9 +281,8 @@ defmodule Wallaby.Chrome do
   end
 
   defp minimum_version_check(version) when is_binary(version) do
-    @chromedriver_version_regex
-    |> Regex.run(version)
-    |> Enum.drop(1)
+    version
+    |> String.split(".")
     |> Enum.map(&String.to_integer/1)
     |> minimum_version_check()
   end
@@ -253,30 +306,9 @@ defmodule Wallaby.Chrome do
     {:error, exception}
   end
 
-  def chrome_and_chromedriver_version_match_check(chrome_version, chromedriver_version) do
-    chrome_version = @chrome_version_regex
-    |> Regex.run(chrome_version)
-    |> Enum.drop(1)
-    |> Enum.join(".")
-
-    chromedriver_version =  @chromedriver_version_regex
-    |> Regex.run(chromedriver_version)
-    |> Enum.drop(1)
-    |> Enum.join(".")
-
-    case Version.compare(chrome_version, chromedriver_version) do
-      :gt ->
-        exception =
-          DependencyError.exception("""
-          Looks like you're trying to run a mismatched version of chrome and chromedriver. You'll need to
-          download the version #{chrome_version} of chromedriver.
-          """)
-
-        {:error, exception}
-
-      _ ->
-        :ok
-    end
+  defp parse_version(prefix, body) do
+    [_, version] = Regex.run(~r/\b#{prefix}\b.*?(\d+\.\d+\.\d+)/, body)
+    version
   end
 
   @doc false
