@@ -72,25 +72,9 @@ defmodule Wallaby.TestSupport.Chrome.ChromeTestScript do
   @doc """
   Builds a test script used to test version constraints
   """
-  @spec build_chromedriver_version_mock_script([version_mock_script_opt]) :: String.t()
+  @spec build_chromedriver_version_mock_script([chromedriver_version_mock_script_opt]) ::
+          String.t()
   def build_chromedriver_version_mock_script(opts) do
-    version = Keyword.get(opts, :version, "79.0.3945.36")
-
-    """
-    #!/bin/sh
-
-    if [ "$1" = "--version" ]; then
-      echo "ChromeDriver #{version}"
-      """
-end
-
-  @type version_mock_script_opt :: {:version, String.t()}
-
-  @doc """
-  Builds a test script used to test version constraints
-  """
-  @spec build_version_mock_script([version_mock_script_opt]) :: String.t()
-  def build_version_mock_script(opts) do
     version = Keyword.get(opts, :version, "79.0.3945.36")
 
     """

@@ -23,7 +23,7 @@ defmodule Wallaby.Integration.Chrome.StartingSessionsTest do
 
     test_script_path =
       chromedriver_path
-      |> ChromeTestScript.build_wrapper_script()
+      |> ChromeTestScript.build_chromedriver_wrapper_script()
       |> write_test_script!(workspace_path)
 
     ensure_setting_is_reset(:wallaby, :chromedriver)
@@ -41,7 +41,7 @@ defmodule Wallaby.Integration.Chrome.StartingSessionsTest do
 
     test_script_path =
       chromedriver_path
-      |> ChromeTestScript.build_wrapper_script()
+      |> ChromeTestScript.build_chromedriver_wrapper_script()
       |> write_test_script!(workspace_path)
 
     ensure_setting_is_reset(:wallaby, :chromedriver)
@@ -96,7 +96,7 @@ defmodule Wallaby.Integration.Chrome.StartingSessionsTest do
     workspace_path: workspace_path
   } do
     test_script_path =
-      ChromeTestScript.build_version_mock_script(version: "2.29")
+      ChromeTestScript.build_chromedriver_version_mock_script(version: "2.29")
       |> write_test_script!(workspace_path)
 
     ensure_setting_is_reset(:wallaby, :chromedriver)
@@ -109,7 +109,7 @@ defmodule Wallaby.Integration.Chrome.StartingSessionsTest do
     workspace_path: workspace_path
   } do
     test_script_path =
-      ChromeTestScript.build_version_mock_script(version: "2.30")
+      ChromeTestScript.build_chromedriver_version_mock_script(version: "2.30")
       |> write_test_script!(workspace_path)
 
     ensure_setting_is_reset(:wallaby, :chromedriver)
@@ -150,7 +150,7 @@ defmodule Wallaby.Integration.Chrome.StartingSessionsTest do
     {:ok, chromedriver_path} = Chrome.find_chromedriver_executable()
 
     chromedriver_path
-    |> ChromeTestScript.build_wrapper_script(opts)
+    |> ChromeTestScript.build_chromedriver_wrapper_script(opts)
     |> write_test_script!(base_dir)
   end
 end

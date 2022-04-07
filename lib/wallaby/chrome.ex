@@ -157,11 +157,13 @@ defmodule Wallaby.Chrome do
          {:ok, chromedriver_version} <- get_chromedriver_version(),
          :ok <- minimum_version_check(chromedriver_version) do
       case Version.compare(chrome_version, chromedriver_version) do
-        :gt ->
+        x when x == :gt or x == :lt ->
           exception =
             DependencyError.exception("""
-            Looks like you're trying to run a mismatched version of chrome and chromedriver. You'll need to
-            download the version #{chrome_version} of chromedriver.
+            Looks like you're trying to run Wallaby with a mismatched version of chrome: #{
+              chrome_version
+            } and chromedriver: #{chromedriver_version}.
+            chrome and chromedriver must match to a major, minor, and build version.
             """)
 
           {:error, exception}
@@ -287,7 +289,8 @@ defmodule Wallaby.Chrome do
     |> minimum_version_check()
   end
 
-  defp minimum_version_check([major_version, _minor_version, _build_version]) when major_version > 2 do
+  defp minimum_version_check([major_version, _minor_version, _build_version])
+       when major_version > 2 do
     :ok
   end
 
