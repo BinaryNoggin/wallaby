@@ -74,9 +74,7 @@ defmodule Wallaby.Query.ErrorMessage do
   def message(_, {:at_number, query}) do
     # The query is invalid. the 'at' number requested is not within the results list (1-#{size}).
     """
-    The element at index #{Query.at_number(query)} is not available because #{
-      result_count(query.result)
-    } #{method(query)} #{result_expectation(query.result)}
+    The element at index #{Query.at_number(query)} is not available because #{result_count(query.result)} #{method(query)} #{result_expectation(query.result)}
     """
   end
 
@@ -107,11 +105,7 @@ defmodule Wallaby.Query.ErrorMessage do
 
   defp found_error_message(query) do
     """
-    #{expected_count(query)} #{visibility_and_selection(query)} #{method(query)} #{
-      selector(query)
-    } but #{result_adverb(query)}#{result_count(query.result)} #{visibility_and_selection(query)} #{
-      short_method(query.method, Enum.count(query.result))
-    } #{result_expectation(query.result)}.
+    #{expected_count(query)} #{visibility_and_selection(query)} #{method(query)} #{selector(query)} but #{result_adverb(query)}#{result_count(query.result)} #{visibility_and_selection(query)} #{short_method(query.method, Enum.count(query.result))} #{result_expectation(query.result)}.
     """
   end
 

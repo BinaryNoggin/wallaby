@@ -108,12 +108,28 @@ defmodule Wallaby.Integration.Chrome.StartingSessionsTest do
   test "application starts when chromedriver version >= 2.30", %{
     workspace_path: workspace_path
   } do
-    test_script_path =
+    IO.puts("start of 2.30 test")
+
+    chromedriver_test_script_path =
       ChromeTestScript.build_chromedriver_version_mock_script(version: "2.30")
       |> write_test_script!(workspace_path)
 
+    chrome_test_script_path =
+      ChromeTestScript.build_chrome_version_mock_script(version: "2.30")
+      |> write_test_script!(workspace_path)
+
+    IO.inspect(chromedriver_test_script_path, label: "chromedriver_test_script_path")
+    IO.inspect(chrome_test_script_path, label: "chrome_test_script_path")
+
     ensure_setting_is_reset(:wallaby, :chromedriver)
-    Application.put_env(:wallaby, :chromedriver, path: test_script_path)
+    Application.put_env(:wallaby, :chromedriver, path: chromedriver_test_script_path)
+    Application.put_env(:wallaby, :chrome, path: chrome_test_script_path)
+
+    File.read!(chrome_test_script_path)
+    |> IO.inspect(label: "chrome_test_script_path_file")
+
+    File.read!(chromedriver_test_script_path)
+    |> IO.inspect(label: "chromedriver_test_script_path_file")
 
     assert :ok = Application.start(:wallaby)
   end

@@ -153,30 +153,18 @@ defmodule Wallaby.Chrome do
   @doc false
   @spec validate() :: :ok | {:error, DependencyError.t()}
   def validate do
-    with {:ok, chrome_version} <- get_chrome_version(),
-         {:ok, chromedriver_version} <- get_chromedriver_version(),
+    with {:ok, chromedriver_version} <- get_chromedriver_version(),
+         {:ok, chrome_version} <- get_chrome_version(),
          :ok <- minimum_version_check(chromedriver_version) do
-      case Version.compare(chrome_version, chromedriver_version) do
-        x when x == :gt or x == :lt ->
-          exception =
-            DependencyError.exception("""
-            Looks like you're trying to run Wallaby with a mismatched version of chrome: #{
-              chrome_version
-            } and chromedriver: #{chromedriver_version}.
-            chrome and chromedriver must match to a major, minor, and build version.
-            """)
-
-          {:error, exception}
-
-        _ ->
-          :ok
-      end
+      version_compare(chrome_version, chromedriver_version)
     end
   end
 
   @doc false
   @spec get_chrome_version() :: {:ok, String.t()} | {:error, term}
   def get_chrome_version do
+    IO.puts("get chrome version")
+
     case :os.type() do
       {:win32, :nt} ->
         {stdout, 0} =
@@ -206,6 +194,8 @@ defmodule Wallaby.Chrome do
   @doc false
   @spec get_chromedriver_version() :: {:ok, String.t()} | {:error, term}
   def get_chromedriver_version do
+    IO.puts("get chromedriver version")
+
     case find_chromedriver_executable() do
       {:ok, chromedriver_executable} ->
         {stdout, 0} = System.cmd(chromedriver_executable, ["--version"])
@@ -237,6 +227,9 @@ defmodule Wallaby.Chrome do
       :wallaby
       |> Application.get_env(:chrome, [])
       |> Keyword.get(:path, default_chrome_path)
+
+    IO.puts("find chrome path expand #{Path.expand(chrome_path)}")
+    IO.puts("find chrome path #{chrome_path}")
 
     [Path.expand(chrome_path), chrome_path]
     |> Enum.find(&System.find_executable/1)
@@ -282,7 +275,25 @@ defmodule Wallaby.Chrome do
     end
   end
 
+  defp version_compare(chrome_version, chromedriver_version) do
+    case chrome_version == chromedriver_version do
+      true ->
+        :ok
+
+      _ ->
+        exception =
+          DependencyError.exception("""
+          Looks like you're trying to run Wallaby with a mismatched version of chrome: #{chrome_version} and chromedriver: #{chromedriver_version}.
+          chrome and chromedriver must match to a major, minor, and build version.
+          """)
+
+        {:error, exception}
+    end
+  end
+
   defp minimum_version_check(version) when is_binary(version) do
+    IO.inspect(version, label: "min version check is binary")
+
     version
     |> String.split(".")
     |> Enum.map(&String.to_integer/1)
@@ -291,15 +302,25 @@ defmodule Wallaby.Chrome do
 
   defp minimum_version_check([major_version, _minor_version, _build_version])
        when major_version > 2 do
+    IO.puts("min version check major version")
     :ok
   end
 
   defp minimum_version_check([major_version, minor_version, _build_version])
        when major_version == 2 and minor_version >= 30 do
+    IO.puts("min version check > 2.30")
     :ok
   end
 
-  defp minimum_version_check(_version) do
+  defp minimum_version_check([major_version, minor_version])
+       when major_version == 2 and minor_version >= 30 do
+    IO.puts("min version check > 2.30")
+    :ok
+  end
+
+  defp minimum_version_check(version) do
+    IO.inspect(version, label: "min version check - arity 1")
+
     exception =
       DependencyError.exception("""
       Looks like you're trying to run an older version of chromedriver. Wallaby needs at least
@@ -310,8 +331,17 @@ defmodule Wallaby.Chrome do
   end
 
   defp parse_version(prefix, body) do
-    [_, version] = Regex.run(~r/\b#{prefix}\b.*?(\d+\.\d+\.\d+)/, body)
-    version
+    IO.inspect(body, label: "version body")
+    # TODO - handle version string like "2.30"
+    case Regex.run(~r/\b#{prefix}\b.*?(\d+\.\d+(\.\d+)?)/, body) do
+      [_, version, _] ->
+        String.split(version, ".")
+        |> Enum.map(&String.to_integer/1)
+
+      [_, version] ->
+        String.split(version, ".")
+        |> Enum.map(&String.to_integer/1)
+    end
   end
 
   @doc false
