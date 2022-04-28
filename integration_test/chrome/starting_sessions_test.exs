@@ -123,6 +123,24 @@ defmodule Wallaby.Integration.Chrome.StartingSessionsTest do
     assert :ok = Application.start(:wallaby)
   end
 
+  test "application does not start when chrome version != chromedriver version", %{
+    workspace_path: workspace_path
+  } do
+    chromedriver_test_script_path =
+      ChromeTestScript.build_chromedriver_version_mock_script(version: "99.0.3945.36")
+      |> write_test_script!(workspace_path)
+
+    chrome_test_script_path =
+      ChromeTestScript.build_chrome_version_mock_script(version: "101.0.3945.36")
+      |> write_test_script!(workspace_path)
+
+    ensure_setting_is_reset(:wallaby, :chromedriver)
+    Application.put_env(:wallaby, :chromedriver, path: chromedriver_test_script_path)
+    Application.put_env(:wallaby, :chrome, path: chrome_test_script_path)
+
+    assert {:error, _} = Application.start(:wallaby)
+  end
+
   test "works with a path in the home directory" do
     test_script_path =
       "~/.wallaby-tmp-%{random_string}"

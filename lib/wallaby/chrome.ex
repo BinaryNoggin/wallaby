@@ -310,12 +310,14 @@ defmodule Wallaby.Chrome do
   end
 
   defp parse_version(prefix, body) do
-    case Regex.run(~r/\b#{prefix}\b.*?(\d+\.\d+(\.\d+)?)/, body) do
+    result = case Regex.run(~r/\b#{prefix}\b.*?(\d+\.\d+(\.\d+)?)/, body) do
       [_, version, _] ->
         String.split(version, ".")
       [_, version] ->
         String.split(version, ".")
     end
+
+    Enum.map(result, &String.to_integer/1)
   end
 
   @doc false
